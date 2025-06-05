@@ -23,6 +23,14 @@ class ConfigManager:
             "line_height": 1.2,
             "margin": 1.0,
             "page_size": "A4",
+            "layout": {
+                "type": "single",
+                "columns": {
+                    "left_width": 65,
+                    "right_width": 35,
+                    "gap": 20
+                }
+            },
             "colors": {
                 "heading": "#1e3a8a",
                 "text": "#000000",
@@ -103,6 +111,28 @@ class ConfigManager:
         valid_page_sizes = ["A4", "Letter", "Legal"]
         if self.config.get('page_size') not in valid_page_sizes:
             errors.append(f"Page size must be one of: {', '.join(valid_page_sizes)}")
+        
+        # Validate layout configuration
+        layout = self.config.get('layout', {})
+        layout_type = layout.get('type')
+        if layout_type not in ['single', 'two-column']:
+            errors.append("Layout type must be 'single' or 'two-column'")
+        
+        if layout_type == 'two-column':
+            columns = layout.get('columns', {})
+            left_width = columns.get('left_width', 0)
+            right_width = columns.get('right_width', 0)
+            
+            if not isinstance(left_width, (int, float)) or left_width <= 0:
+                errors.append("Left column width must be a positive number")
+            if not isinstance(right_width, (int, float)) or right_width <= 0:
+                errors.append("Right column width must be a positive number")
+            if left_width + right_width != 100:
+                errors.append(f"Column widths must add up to 100% (got {left_width + right_width}%)")
+            
+            gap = columns.get('gap', 0)
+            if not isinstance(gap, (int, float)) or gap < 0:
+                errors.append("Column gap must be a non-negative number")
         
         if errors:
             raise Exception("Configuration validation failed:\n" + "\n".join(errors))

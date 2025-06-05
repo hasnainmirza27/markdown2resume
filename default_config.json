@@ -4,6 +4,14 @@
   "line_height": 1.2,
   "margin": 1.0,
   "page_size": "A4",
+  "layout": {
+    "type": "single",
+    "columns": {
+      "left_width": 65,
+      "right_width": 35,
+      "gap": 20
+    }
+  },
   "colors": {
     "heading": "#1e3a8a",
     "text": "#000000",

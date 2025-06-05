@@ -79,6 +79,34 @@ Examples:
     )
     
     parser.add_argument(
+        "--layout",
+        help="Layout type (single, two-column)",
+        choices=["single", "two-column"],
+        default=None
+    )
+    
+    parser.add_argument(
+        "--left-width",
+        type=int,
+        help="Left column width percentage (for two-column layout)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--right-width",
+        type=int,
+        help="Right column width percentage (for two-column layout)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--column-gap",
+        type=int,
+        help="Gap between columns in points (for two-column layout)",
+        default=None
+    )
+    
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Enable verbose output"
@@ -128,6 +156,34 @@ Examples:
             cli_overrides['page_size'] = args.page_size
         if args.line_height:
             cli_overrides['line_height'] = args.line_height
+        
+        # Handle layout overrides
+        if args.layout:
+            if 'layout' not in cli_overrides:
+                cli_overrides['layout'] = {}
+            cli_overrides['layout']['type'] = args.layout
+        
+        # Handle column width overrides
+        if args.left_width is not None or args.right_width is not None or args.column_gap is not None:
+            if 'layout' not in cli_overrides:
+                cli_overrides['layout'] = {}
+            if 'columns' not in cli_overrides['layout']:
+                cli_overrides['layout']['columns'] = {}
+            
+            if args.left_width is not None:
+                cli_overrides['layout']['columns']['left_width'] = args.left_width
+            if args.right_width is not None:
+                cli_overrides['layout']['columns']['right_width'] = args.right_width
+            if args.column_gap is not None:
+                cli_overrides['layout']['columns']['gap'] = args.column_gap
+            
+            # Validate column widths add up to 100
+            left = args.left_width or config_manager.get_config().get('layout', {}).get('columns', {}).get('left_width', 65)
+            right = args.right_width or config_manager.get_config().get('layout', {}).get('columns', {}).get('right_width', 35)
+            
+            if left + right != 100:
+                print(f"Error: Column widths must add up to 100% (got {left}% + {right}% = {left + right}%)", file=sys.stderr)
+                sys.exit(1)
         
         config_manager.apply_overrides(cli_overrides)
         

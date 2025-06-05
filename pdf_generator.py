@@ -1,15 +1,19 @@
 """
 PDF Generator Module
 
-Handles the conversion of HTML content to PDF using ReportLab.
+Handles the conversion of HTML content to PDF using ReportLab with support for 
+single-column and two-column layouts.
 """
 
 import re
 from pathlib import Path
 from reportlab.lib.pagesizes import letter, A4, legal
-from reportlab.lib.units import inch
+from reportlab.lib.units import inch, mm
 from reportlab.lib.colors import black, blue, darkblue
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.platypus import (
+    BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, 
+    PageBreak, FrameBreak, NextPageTemplate, KeepTogether, SimpleDocTemplate
+)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
 from reportlab.pdfgen import canvas
@@ -19,18 +23,28 @@ import html
 class HTMLToReportLabParser(HTMLParser):
     """Custom HTML parser to convert HTML to ReportLab flowables."""
     
-    def __init__(self, styles):
+    def __init__(self, styles, layout_config=None):
         super().__init__()
         self.styles = styles
+        self.layout_config = layout_config or {'type': 'single'}
         self.flowables = []
         self.current_text = ""
         self.tag_stack = []
         self.list_level = 0
         self.list_items = []
+        self.column_break_markers = []  # Track where column breaks should occur
         
     def handle_starttag(self, tag, attrs):
         """Handle opening HTML tags."""
         self.tag_stack.append(tag)
+        
+        # Check for column break markers (div with class="column-break")
+        if tag == 'div':
+            attrs_dict = dict(attrs)
+            if attrs_dict.get('class') == 'column-break':
+                self._flush_text()
+                self.column_break_markers.append(len(self.flowables))
+                return
         
         if tag in ['h1', 'h2', 'h3', 'h4', 'h5', 'h6']:
             self._flush_text()
@@ -117,13 +131,27 @@ class HTMLToReportLabParser(HTMLParser):
             self.flowables.append(Spacer(1, 6))
         self.list_items = []
     
-    def close(self):
+    def get_flowables(self):
         """Finish parsing and return flowables."""
         self._flush_text()
         if self.list_items:
             self._add_list_items()
-        super().close()
+        
+        # Insert column breaks for two-column layout
+        if self.layout_config.get('type') == 'two-column':
+            self._insert_column_breaks()
+        
         return self.flowables
+    
+    def close(self):
+        """Override parent close method."""
+        super().close()
+    
+    def _insert_column_breaks(self):
+        """Insert FrameBreak elements at column break markers."""
+        for i, break_pos in enumerate(reversed(self.column_break_markers)):
+            # Insert in reverse order to maintain positions
+            self.flowables.insert(break_pos, FrameBreak())
 
 class PDFGenerator:
     """Main PDF generator class."""
@@ -227,16 +255,7 @@ class PDFGenerator:
                 A4
             )
             margin = self.config.get('margin', 1.0) * inch
-            
-            # Create document
-            doc = SimpleDocTemplate(
-                output_path,
-                pagesize=page_size,
-                leftMargin=margin,
-                rightMargin=margin,
-                topMargin=margin,
-                bottomMargin=margin
-            )
+            layout_config = self.config.get('layout', {'type': 'single'})
             
             # Create styles
             styles = self._create_styles()
@@ -245,16 +264,86 @@ class PDFGenerator:
             processed_html = self._preprocess_html(html_content)
             
             # Parse HTML to flowables
-            parser = HTMLToReportLabParser(styles)
+            parser = HTMLToReportLabParser(styles, layout_config)
             parser.feed(processed_html)
-            flowables = parser.close()
+            flowables = parser.get_flowables()
             
             if not flowables:
                 # If no flowables were generated, create a simple paragraph
                 flowables = [Paragraph("No content to display", styles['Normal'])]
             
-            # Build PDF
-            doc.build(flowables)
+            # Create document based on layout type
+            if layout_config.get('type') == 'two-column':
+                self._build_two_column_pdf(output_path, page_size, margin, flowables, layout_config)
+            else:
+                self._build_single_column_pdf(output_path, page_size, margin, flowables)
             
         except Exception as e:
             raise Exception(f"Failed to generate PDF: {str(e)}")
+    
+    def _build_single_column_pdf(self, output_path, page_size, margin, flowables):
+        """Build a single-column PDF."""
+        doc = SimpleDocTemplate(
+            output_path,
+            pagesize=page_size,
+            leftMargin=margin,
+            rightMargin=margin,
+            topMargin=margin,
+            bottomMargin=margin
+        )
+        doc.build(flowables)
+    
+    def _build_two_column_pdf(self, output_path, page_size, margin, flowables, layout_config):
+        """Build a two-column PDF using BaseDocTemplate and frames."""
+        # Get column configuration
+        columns = layout_config.get('columns', {})
+        left_width_pct = columns.get('left_width', 65)
+        right_width_pct = columns.get('right_width', 35)
+        gap = columns.get('gap', 20)
+        
+        # Calculate dimensions
+        page_width, page_height = page_size
+        available_width = page_width - 2 * margin
+        
+        left_width = (available_width * left_width_pct / 100) - (gap / 2)
+        right_width = (available_width * right_width_pct / 100) - (gap / 2)
+        
+        # Create frames
+        left_frame = Frame(
+            margin, margin, left_width, page_height - 2 * margin,
+            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+            id='left'
+        )
+        
+        right_frame = Frame(
+            margin + left_width + gap, margin, right_width, page_height - 2 * margin,
+            leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+            id='right'
+        )
+        
+        # Create document and page template
+        doc = BaseDocTemplate(output_path, pagesize=page_size)
+        page_template = PageTemplate(id='TwoColumn', frames=[left_frame, right_frame])
+        doc.addPageTemplates([page_template])
+        
+        # Split flowables between columns if no explicit breaks
+        if not any(isinstance(f, FrameBreak) for f in flowables):
+            flowables = self._auto_split_columns(flowables)
+        
+        # Build PDF
+        doc.build(flowables)
+    
+    def _auto_split_columns(self, flowables):
+        """Automatically split content between columns."""
+        # Simple heuristic: put roughly half the content in each column
+        mid_point = len(flowables) // 2
+        
+        # Find a good break point (avoid breaking in the middle of a section)
+        for i in range(mid_point - 5, mid_point + 5):
+            if i < len(flowables) and isinstance(flowables[i], Spacer):
+                mid_point = i + 1
+                break
+        
+        # Insert frame break
+        new_flowables = flowables[:mid_point] + [FrameBreak()] + flowables[mid_point:]
+        return new_flowables
