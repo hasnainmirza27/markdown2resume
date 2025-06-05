@@ -40,6 +40,21 @@ class ConfigManager:
                 "paragraph": 6,
                 "heading": 12,
                 "section": 18
+            },
+            "background": {
+                "type": "solid",
+                "color": "#ffffff",
+                "gradient": {
+                    "start_color": "#ffffff",
+                    "end_color": "#f8f9fa",
+                    "fade_percentage": 50,
+                    "direction": "vertical"
+                },
+                "images": {
+                    "top": None,
+                    "bottom": None,
+                    "opacity": 0.1
+                }
             }
         }
     

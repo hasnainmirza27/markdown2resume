@@ -9,7 +9,8 @@ import re
 from pathlib import Path
 from reportlab.lib.pagesizes import letter, A4, legal
 from reportlab.lib.units import inch, mm
-from reportlab.lib.colors import black, blue, darkblue
+from reportlab.lib.colors import black, blue, darkblue, Color, HexColor
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (
     BaseDocTemplate, PageTemplate, Frame, Paragraph, Spacer, 
     PageBreak, FrameBreak, NextPageTemplate, KeepTogether, SimpleDocTemplate
@@ -153,6 +154,149 @@ class HTMLToReportLabParser(HTMLParser):
             # Insert in reverse order to maintain positions
             self.flowables.insert(break_pos, FrameBreak())
 
+class BackgroundPageTemplate(PageTemplate):
+    """Custom page template with background support."""
+    
+    def __init__(self, id, frames, pagesize, background_config):
+        super().__init__(id, frames, pagesize=pagesize)
+        self.background_config = background_config
+        self.pagesize = pagesize
+    
+    def beforeDrawPage(self, canv, doc):
+        """Draw background before page content."""
+        self._draw_background(canv)
+    
+    def _draw_background(self, canvas):
+        """Draw the background based on configuration."""
+        bg_config = self.background_config
+        if not bg_config:
+            return
+        
+        page_width, page_height = self.pagesize
+        
+        # Draw background color or gradient
+        if bg_config.get('type') == 'gradient':
+            self._draw_gradient(canvas, page_width, page_height, bg_config)
+        else:
+            self._draw_solid_background(canvas, page_width, page_height, bg_config)
+        
+        # Draw background images
+        self._draw_background_images(canvas, page_width, page_height, bg_config)
+    
+    def _draw_solid_background(self, canvas, width, height, bg_config):
+        """Draw solid background color."""
+        color = bg_config.get('color', '#ffffff')
+        try:
+            bg_color = HexColor(color)
+            canvas.setFillColor(bg_color)
+            canvas.rect(0, 0, width, height, fill=1, stroke=0)
+        except:
+            # Fallback to white if color parsing fails
+            canvas.setFillColor(HexColor('#ffffff'))
+            canvas.rect(0, 0, width, height, fill=1, stroke=0)
+    
+    def _draw_gradient(self, canvas, width, height, bg_config):
+        """Draw gradient background."""
+        gradient_config = bg_config.get('gradient', {})
+        start_color = gradient_config.get('start_color', '#ffffff')
+        end_color = gradient_config.get('end_color', '#f8f9fa')
+        fade_percentage = gradient_config.get('fade_percentage', 50)
+        direction = gradient_config.get('direction', 'vertical')
+        
+        try:
+            start_hex = HexColor(start_color)
+            end_hex = HexColor(end_color)
+            
+            if direction == 'vertical':
+                fade_point = height * (fade_percentage / 100)
+                steps = 50  # Number of gradient steps
+                
+                for i in range(steps):
+                    y = (height / steps) * i
+                    if y <= fade_point:
+                        # First part - start color to transition
+                        ratio = y / fade_point if fade_point > 0 else 0
+                    else:
+                        # Second part - transition to end color
+                        ratio = 1.0
+                    
+                    # Interpolate colors
+                    r = start_hex.red + (end_hex.red - start_hex.red) * ratio
+                    g = start_hex.green + (end_hex.green - start_hex.green) * ratio
+                    b = start_hex.blue + (end_hex.blue - start_hex.blue) * ratio
+                    
+                    canvas.setFillColor(Color(r, g, b))
+                    canvas.rect(0, y, width, height/steps, fill=1, stroke=0)
+            else:
+                # Horizontal gradient
+                fade_point = width * (fade_percentage / 100)
+                steps = 50
+                
+                for i in range(steps):
+                    x = (width / steps) * i
+                    if x <= fade_point:
+                        ratio = x / fade_point if fade_point > 0 else 0
+                    else:
+                        ratio = 1.0
+                    
+                    r = start_hex.red + (end_hex.red - start_hex.red) * ratio
+                    g = start_hex.green + (end_hex.green - start_hex.green) * ratio
+                    b = start_hex.blue + (end_hex.blue - start_hex.blue) * ratio
+                    
+                    canvas.setFillColor(Color(r, g, b))
+                    canvas.rect(x, 0, width/steps, height, fill=1, stroke=0)
+                    
+        except Exception:
+            # Fallback to solid color if gradient fails
+            self._draw_solid_background(canvas, width, height, bg_config)
+    
+    def _draw_background_images(self, canvas, width, height, bg_config):
+        """Draw background images at top and bottom."""
+        images_config = bg_config.get('images', {})
+        if not images_config:
+            return
+        
+        opacity = images_config.get('opacity', 0.1)
+        top_image = images_config.get('top')
+        bottom_image = images_config.get('bottom')
+        
+        # Draw top image
+        if top_image and Path(top_image).exists():
+            try:
+                canvas.saveState()
+                canvas.setFillAlpha(opacity)
+                img = ImageReader(top_image)
+                img_width, img_height = img.getSize()
+                
+                # Scale image to fit page width while maintaining aspect ratio
+                scale = width / img_width
+                scaled_height = img_height * scale
+                
+                # Position at top of page
+                y_pos = height - scaled_height
+                canvas.drawImage(img, 0, y_pos, width, scaled_height, mask='auto')
+                canvas.restoreState()
+            except Exception:
+                pass  # Skip if image loading fails
+        
+        # Draw bottom image
+        if bottom_image and Path(bottom_image).exists():
+            try:
+                canvas.saveState()
+                canvas.setFillAlpha(opacity)
+                img = ImageReader(bottom_image)
+                img_width, img_height = img.getSize()
+                
+                # Scale image to fit page width while maintaining aspect ratio
+                scale = width / img_width
+                scaled_height = img_height * scale
+                
+                # Position at bottom of page
+                canvas.drawImage(img, 0, 0, width, scaled_height, mask='auto')
+                canvas.restoreState()
+            except Exception:
+                pass  # Skip if image loading fails
+
 class PDFGenerator:
     """Main PDF generator class."""
     
@@ -291,19 +435,44 @@ class PDFGenerator:
             raise Exception(f"Failed to generate PDF: {str(e)}")
     
     def _build_single_column_pdf(self, output_path, page_size, margin, flowables):
-        """Build a single-column PDF."""
-        doc = SimpleDocTemplate(
-            output_path,
-            pagesize=page_size,
-            leftMargin=margin,
-            rightMargin=margin,
-            topMargin=margin,
-            bottomMargin=margin
-        )
-        doc.build(flowables)
+        """Build a single-column PDF with background support."""
+        background_config = self.config.get('background', {})
+        
+        if background_config and background_config.get('type') != 'solid' or background_config.get('color') != '#ffffff':
+            # Use BaseDocTemplate for background support
+            doc = BaseDocTemplate(output_path, pagesize=page_size)
+            
+            # Create frame
+            frame = Frame(
+                margin, margin, 
+                page_size[0] - 2 * margin, page_size[1] - 2 * margin,
+                leftPadding=0, rightPadding=0, topPadding=0, bottomPadding=0,
+                id='single'
+            )
+            
+            # Create page template with background
+            page_template = BackgroundPageTemplate(
+                id='SingleColumn', 
+                frames=[frame], 
+                pagesize=page_size,
+                background_config=background_config
+            )
+            doc.addPageTemplates([page_template])
+            doc.build(flowables)
+        else:
+            # Use SimpleDocTemplate for plain white background
+            doc = SimpleDocTemplate(
+                output_path,
+                pagesize=page_size,
+                leftMargin=margin,
+                rightMargin=margin,
+                topMargin=margin,
+                bottomMargin=margin
+            )
+            doc.build(flowables)
     
     def _build_two_column_pdf(self, output_path, page_size, margin, flowables, layout_config):
-        """Build a two-column PDF using BaseDocTemplate and frames."""
+        """Build a two-column PDF using BaseDocTemplate and frames with background support."""
         # Get column configuration
         columns = layout_config.get('columns', {})
         left_width_pct = columns.get('left_width', 65)
@@ -330,9 +499,15 @@ class PDFGenerator:
             id='right'
         )
         
-        # Create document and page template
+        # Create document and page template with background
         doc = BaseDocTemplate(output_path, pagesize=page_size)
-        page_template = PageTemplate(id='TwoColumn', frames=[left_frame, right_frame])
+        background_config = self.config.get('background', {})
+        page_template = BackgroundPageTemplate(
+            id='TwoColumn', 
+            frames=[left_frame, right_frame],
+            pagesize=page_size,
+            background_config=background_config
+        )
         doc.addPageTemplates([page_template])
         
         # Always auto-split for two-column layout (user can add manual breaks in markdown if needed)

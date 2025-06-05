@@ -107,6 +107,57 @@ Examples:
     )
     
     parser.add_argument(
+        "--bg-color",
+        help="Background color (hex format, e.g., #ffffff)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--bg-type",
+        help="Background type (solid, gradient)",
+        choices=["solid", "gradient"],
+        default=None
+    )
+    
+    parser.add_argument(
+        "--gradient-start",
+        help="Gradient start color (hex format)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--gradient-end",
+        help="Gradient end color (hex format)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--gradient-fade",
+        type=int,
+        help="Gradient fade percentage (0-100)",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--bg-top-image",
+        help="Path to top background image",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--bg-bottom-image",
+        help="Path to bottom background image",
+        default=None
+    )
+    
+    parser.add_argument(
+        "--bg-opacity",
+        type=float,
+        help="Background image opacity (0.0-1.0)",
+        default=None
+    )
+    
+    parser.add_argument(
         "--verbose", "-v",
         action="store_true",
         help="Enable verbose output"
@@ -184,6 +235,40 @@ Examples:
             if left + right != 100:
                 print(f"Error: Column widths must add up to 100% (got {left}% + {right}% = {left + right}%)", file=sys.stderr)
                 sys.exit(1)
+        
+        # Handle background overrides
+        background_overrides = {}
+        if args.bg_color:
+            background_overrides['color'] = args.bg_color
+        if args.bg_type:
+            background_overrides['type'] = args.bg_type
+        if args.gradient_start:
+            if 'gradient' not in background_overrides:
+                background_overrides['gradient'] = {}
+            background_overrides['gradient']['start_color'] = args.gradient_start
+        if args.gradient_end:
+            if 'gradient' not in background_overrides:
+                background_overrides['gradient'] = {}
+            background_overrides['gradient']['end_color'] = args.gradient_end
+        if args.gradient_fade is not None:
+            if 'gradient' not in background_overrides:
+                background_overrides['gradient'] = {}
+            background_overrides['gradient']['fade_percentage'] = args.gradient_fade
+        if args.bg_top_image:
+            if 'images' not in background_overrides:
+                background_overrides['images'] = {}
+            background_overrides['images']['top'] = args.bg_top_image
+        if args.bg_bottom_image:
+            if 'images' not in background_overrides:
+                background_overrides['images'] = {}
+            background_overrides['images']['bottom'] = args.bg_bottom_image
+        if args.bg_opacity is not None:
+            if 'images' not in background_overrides:
+                background_overrides['images'] = {}
+            background_overrides['images']['opacity'] = args.bg_opacity
+        
+        if background_overrides:
+            cli_overrides['background'] = background_overrides
         
         config_manager.apply_overrides(cli_overrides)
         
