@@ -157,9 +157,67 @@ When using two-column layouts, column widths must always add up to 100%:
 - **60/40**: Balanced content distribution
 - **55/45**: Equal emphasis on both columns
 
-## Examples
+## Project Structure
 
-### Convert with Two Columns
+```
+resume-converter/
+├── resume_converter.py          # Main script
+├── pdf_generator.py             # PDF generation engine
+├── config.py                    # Configuration management
+├── README.md                    # This documentation
+├── configs/                     # Configuration presets
+│   ├── default_config.json      # Default settings
+│   ├── single_column_professional.json
+│   ├── modern_two_column.json
+│   ├── two_column_config.json
+│   └── README.md
+└── tests/                       # Test files and samples
+    ├── sample_resume.md         # Sample single-column resume
+    ├── sample_two_column_resume.md
+    ├── test_runner.py           # Automated test suite
+    └── README.md
+```
+
+## Quick Start Examples
+
+### Basic Conversion
 ```bash
-# Create a two-column resume with 65% left, 35% right
-python resume_converter.py resume.md --layout two-column -o resume_2col.pdf
+# Single column (default)
+python resume_converter.py tests/sample_resume.md
+
+# Two column with default settings
+python resume_converter.py tests/sample_resume.md --layout two-column
+```
+
+### Using Configuration Presets
+```bash
+# Professional single-column style
+python resume_converter.py resume.md --config configs/single_column_professional.json
+
+# Modern two-column design
+python resume_converter.py resume.md --config configs/modern_two_column.json
+```
+
+### Custom Column Layouts
+```bash
+# 70/30 split
+python resume_converter.py resume.md --layout two-column --left-width 70 --right-width 30
+
+# 60/40 split with custom gap
+python resume_converter.py resume.md --layout two-column --left-width 60 --right-width 40 --column-gap 25
+```
+
+## Testing
+
+### Run Test Suite
+```bash
+python tests/test_runner.py
+```
+
+### Manual Testing
+```bash
+# Test single column
+python resume_converter.py tests/sample_resume.md -o output.pdf
+
+# Test two column with column break
+python resume_converter.py tests/sample_two_column_resume.md --layout two-column -o output_2col.pdf

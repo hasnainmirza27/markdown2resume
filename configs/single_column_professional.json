@@ -1,0 +1,25 @@
+{
+  "font_family": "Times-Roman",
+  "font_size": 11,
+  "line_height": 1.2,
+  "margin": 1.0,
+  "page_size": "A4",
+  "layout": {
+    "type": "single",
+    "columns": {
+      "left_width": 100,
+      "right_width": 0,
+      "gap": 0
+    }
+  },
+  "colors": {
+    "heading": "#2c3e50",
+    "text": "#000000",
+    "link": "#3498db"
+  },
+  "spacing": {
+    "paragraph": 8,
+    "heading": 14,
+    "section": 20
+  }
+}

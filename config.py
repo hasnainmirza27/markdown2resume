@@ -45,7 +45,7 @@ class ConfigManager:
     
     def _load_default_config_file(self):
         """Load default configuration file if it exists."""
-        default_config_path = Path(__file__).parent / "default_config.json"
+        default_config_path = Path(__file__).parent / "configs" / "default_config.json"
         if default_config_path.exists():
             try:
                 self.load_config(default_config_path)
