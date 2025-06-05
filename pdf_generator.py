@@ -181,6 +181,15 @@ class PDFGenerator:
         styles['Normal'].spaceAfter = 6
         styles['Normal'].alignment = TA_JUSTIFY
         
+        # Map font families to their bold variants
+        font_mapping = {
+            'Helvetica': 'Helvetica-Bold',
+            'Times-Roman': 'Times-Bold',
+            'Courier': 'Courier-Bold'
+        }
+        
+        bold_font = font_mapping.get(font_family, f'{font_family}-Bold')
+        
         # Heading styles
         heading_sizes = [24, 20, 16, 14, 12, 11]
         for i in range(1, 7):
@@ -193,12 +202,12 @@ class PDFGenerator:
                     leading=max(heading_sizes[i-1], base_font_size) * 1.2,
                     spaceAfter=12,
                     spaceBefore=12,
-                    fontName=f'{font_family}-Bold',
+                    fontName=bold_font,
                     textColor=darkblue if i <= 2 else black,
                     alignment=TA_LEFT
                 ))
             else:
-                styles[style_name].fontName = f'{font_family}-Bold'
+                styles[style_name].fontName = bold_font
                 styles[style_name].fontSize = max(heading_sizes[i-1], base_font_size)
                 styles[style_name].leading = max(heading_sizes[i-1], base_font_size) * 1.2
                 styles[style_name].textColor = darkblue if i <= 2 else black
