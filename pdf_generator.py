@@ -179,7 +179,7 @@ class PDFGenerator:
         styles['Normal'].fontSize = base_font_size
         styles['Normal'].leading = base_font_size * line_height
         styles['Normal'].spaceAfter = 6
-        styles['Normal'].alignment = TA_JUSTIFY
+        styles['Normal'].alignment = TA_LEFT
         
         # Map font families to their bold variants
         font_mapping = {
