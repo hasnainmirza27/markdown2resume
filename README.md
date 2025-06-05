@@ -16,19 +16,29 @@ A Python command-line tool that converts markdown-formatted resumes into profess
 
 ### Prerequisites
 
-Make sure you have Python 3.6 or higher installed on your system.
+- Python 3.6 or higher
+- pip package manager
 
-### Required Dependencies
+### Quick Installation
 
-The script requires the following Python packages:
-- `markdown` - For parsing markdown content
-- `reportlab` - For PDF generation
-- `pathlib` - For file path handling (included in Python 3.4+)
+#### Option 1: Automated Installation (Recommended)
+```bash
+python install.py
+```
 
-Install the dependencies using pip:
-
+#### Option 2: Manual Installation
 ```bash
 pip install markdown reportlab
+```
+
+#### Option 3: Using Dependencies File
+```bash
+pip install -r dependencies.txt
+```
+
+### Verify Installation
+```bash
+python resume_converter.py --help
 ```
 
 ## Usage
@@ -164,7 +174,10 @@ resume-converter/
 ├── resume_converter.py          # Main script
 ├── pdf_generator.py             # PDF generation engine
 ├── config.py                    # Configuration management
-├── README.md                    # This documentation
+├── install.py                   # Automated installation script
+├── dependencies.txt             # Dependency specifications
+├── README.md                    # Main documentation
+├── INSTALL.md                   # Installation guide
 ├── configs/                     # Configuration presets
 │   ├── default_config.json      # Default settings
 │   ├── single_column_professional.json
