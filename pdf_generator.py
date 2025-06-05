@@ -326,9 +326,8 @@ class PDFGenerator:
         page_template = PageTemplate(id='TwoColumn', frames=[left_frame, right_frame])
         doc.addPageTemplates([page_template])
         
-        # Split flowables between columns if no explicit breaks
-        if not any(isinstance(f, FrameBreak) for f in flowables):
-            flowables = self._auto_split_columns(flowables)
+        # Always auto-split for two-column layout (user can add manual breaks in markdown if needed)
+        flowables = self._auto_split_columns(flowables)
         
         # Build PDF
         doc.build(flowables)
@@ -339,8 +338,8 @@ class PDFGenerator:
         mid_point = len(flowables) // 2
         
         # Find a good break point (avoid breaking in the middle of a section)
-        for i in range(mid_point - 5, mid_point + 5):
-            if i < len(flowables) and isinstance(flowables[i], Spacer):
+        for i in range(max(0, mid_point - 5), min(len(flowables), mid_point + 5)):
+            if i < len(flowables) and hasattr(flowables[i], '__class__') and flowables[i].__class__.__name__ == 'Spacer':
                 mid_point = i + 1
                 break
         
