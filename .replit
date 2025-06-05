@@ -1,0 +1,40 @@
+modules = ["python-3.11"]
+
+[nix]
+channel = "stable-24_05"
+packages = ["freetype", "glibcLocales"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Resume Converter"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "resume_converter_test"
+
+[[workflows.workflow]]
+name = "Resume Converter"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pip install markdown reportlab && python resume_converter.py sample_resume.md -o output_resume.pdf --verbose"
+
+[[workflows.workflow]]
+name = "resume_converter_test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pip install markdown reportlab && python resume_converter.py sample_resume.md -v"
+
+[deployment]
+run = ["sh", "-c", "pip install markdown reportlab && python resume_converter.py sample_resume.md -o output_resume.pdf --verbose"]

@@ -1,0 +1,26 @@
+{
+  "font_family": "Helvetica",
+  "font_size": 11,
+  "line_height": 1.2,
+  "margin": 1.0,
+  "page_size": "A4",
+  "colors": {
+    "heading": "#1e3a8a",
+    "text": "#000000",
+    "link": "#2563eb"
+  },
+  "spacing": {
+    "paragraph": 6,
+    "heading": 12,
+    "section": 18
+  },
+  "fonts": {
+    "available": [
+      "Helvetica",
+      "Times-Roman",
+      "Courier"
+    ],
+    "heading_weight": "Bold",
+    "body_weight": "Normal"
+  }
+}
