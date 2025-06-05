@@ -6,6 +6,7 @@ A Python command-line tool that converts markdown-formatted resumes into profess
 
 - **Markdown Support**: Full support for standard markdown syntax including headers, lists, bold, italic, and links
 - **Two Layout Types**: Single-column and two-column layouts with customizable column widths
+- **Background Customization**: Solid colors, gradients with configurable fade points, and background images
 - **Customizable Styling**: Configure fonts, sizes, colors, spacing, and column proportions
 - **Professional Output**: Clean, readable PDF format suitable for job applications
 - **Command-Line Interface**: Easy to use from the command line with various options
@@ -131,6 +132,14 @@ Example configuration file (`my_config.json`):
 | `--left-width` | Left column width percentage | `--left-width 70` |
 | `--right-width` | Right column width percentage | `--right-width 30` |
 | `--column-gap` | Gap between columns in points | `--column-gap 25` |
+| `--bg-color` | Background color (hex format) | `--bg-color "#f0f8ff"` |
+| `--bg-type` | Background type | `--bg-type gradient` |
+| `--gradient-start` | Gradient start color | `--gradient-start "#ffffff"` |
+| `--gradient-end` | Gradient end color | `--gradient-end "#f8f9fa"` |
+| `--gradient-fade` | Gradient fade percentage (0-100) | `--gradient-fade 30` |
+| `--bg-top-image` | Path to top background image | `--bg-top-image header.png` |
+| `--bg-bottom-image` | Path to bottom background image | `--bg-bottom-image footer.png` |
+| `--bg-opacity` | Background image opacity (0.0-1.0) | `--bg-opacity 0.15` |
 | `-v, --verbose` | Enable verbose output | `-v` |
 
 ## Layout Examples
@@ -205,6 +214,22 @@ python resume_converter.py resume.md --layout two-column --left-width 70 --right
 
 # 60/40 split with custom gap
 python resume_converter.py resume.md --layout two-column --left-width 60 --right-width 40 --column-gap 25
+```
+
+### Background Customization
+
+```bash
+# Solid background color
+python resume_converter.py resume.md --bg-color "#f0f8ff"
+
+# Gradient background
+python resume_converter.py resume.md --bg-type gradient --gradient-start "#ffffff" --gradient-end "#e9ecef" --gradient-fade 30
+
+# Background images with opacity
+python resume_converter.py resume.md --bg-top-image header.png --bg-bottom-image footer.png --bg-opacity 0.15
+
+# Combined: Two-column with gradient and images
+python resume_converter.py resume.md --layout two-column --bg-type gradient --gradient-start "#ffffff" --gradient-end "#f1f3f4" --gradient-fade 25 --bg-top-image header.png --bg-opacity 0.1
 ```
 
 ## Testing
